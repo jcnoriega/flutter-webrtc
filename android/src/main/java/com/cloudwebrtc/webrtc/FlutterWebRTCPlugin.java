@@ -133,7 +133,7 @@ public class FlutterWebRTCPlugin implements MethodCallHandler {
                 .setAudioDeviceModule(audioDeviceModule)
                 .createPeerConnectionFactory();
 
-        startAudioManager();
+        //startAudioManager();
 
 /*        rtcAudioManager = RTCAudioManager.create(registrar.context());
         // Store existing audio settings and change audio mode to
@@ -224,6 +224,7 @@ public class FlutterWebRTCPlugin implements MethodCallHandler {
             Map<String, Object> constraints = call.argument("constraints");
             ConstraintsMap constraintsMap = new ConstraintsMap(constraints);
             getUserMedia(constraintsMap, result);
+            startAudioManager(); //TODO: check if this is the correct place
         } else if (call.method.equals("getSources")) {
             getSources(result);
         } else if (call.method.equals("createOffer")) {

@@ -83,6 +83,7 @@ public class RTCAudioBackgroundService extends Service {
     }
 
     private void stop() {
+        rtcAudioManager.stop();
         stopForeground(true);
         stopSelf();
     }
