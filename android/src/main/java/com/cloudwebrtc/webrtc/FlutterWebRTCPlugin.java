@@ -2,11 +2,14 @@ package com.cloudwebrtc.webrtc;
 
 import android.app.Activity;
 import android.content.Context;
+import android.content.Intent;
 import android.hardware.Camera;
 import android.graphics.SurfaceTexture;
 import android.media.AudioManager;
 import android.util.Log;
 import android.util.LongSparseArray;
+
+import androidx.core.content.ContextCompat;
 
 import com.cloudwebrtc.webrtc.record.AudioChannel;
 import com.cloudwebrtc.webrtc.record.FrameCapturer;
@@ -15,6 +18,7 @@ import com.cloudwebrtc.webrtc.utils.ConstraintsArray;
 import com.cloudwebrtc.webrtc.utils.ConstraintsMap;
 import com.cloudwebrtc.webrtc.utils.EglUtils;
 import com.cloudwebrtc.webrtc.utils.ObjectType;
+import com.cloudwebrtc.webrtc.utils.RTCAudioBackgroundService;
 import com.cloudwebrtc.webrtc.utils.RTCAudioManager;
 
 import java.io.UnsupportedEncodingException;
@@ -74,6 +78,7 @@ public class FlutterWebRTCPlugin implements MethodCallHandler {
     private AudioDeviceModule audioDeviceModule;
 
     private RTCAudioManager rtcAudioManager;
+    private boolean audioManagerStarted;
 
     public Activity getActivity() {
         return registrar.activity();
@@ -128,7 +133,9 @@ public class FlutterWebRTCPlugin implements MethodCallHandler {
                 .setAudioDeviceModule(audioDeviceModule)
                 .createPeerConnectionFactory();
 
-        rtcAudioManager = RTCAudioManager.create(registrar.context());
+        startAudioManager();
+
+/*        rtcAudioManager = RTCAudioManager.create(registrar.context());
         // Store existing audio settings and change audio mode to
         // MODE_IN_COMMUNICATION for best possible VoIP performance.
         Log.d(TAG, "Starting the audio manager...");
@@ -137,10 +144,10 @@ public class FlutterWebRTCPlugin implements MethodCallHandler {
             // devices has changed.
             @Override
             public void onAudioDeviceChanged(
-                RTCAudioManager.AudioDevice audioDevice, Set<RTCAudioManager.AudioDevice> availableAudioDevices) {
+                    RTCAudioManager.AudioDevice audioDevice, Set<RTCAudioManager.AudioDevice> availableAudioDevices) {
                 onAudioManagerDevicesChanged(audioDevice, availableAudioDevices);
             }
-        });
+        });*/
         /*
         if (audioManager != null) {
             audioManager.stop();
@@ -150,7 +157,7 @@ public class FlutterWebRTCPlugin implements MethodCallHandler {
     }
 
     private void startAudioManager() {
-        if(rtcAudioManager != null)
+   /*     if (rtcAudioManager != null)
             return;
 
         rtcAudioManager = RTCAudioManager.create(registrar.context());
@@ -162,24 +169,42 @@ public class FlutterWebRTCPlugin implements MethodCallHandler {
             // devices has changed.
             @Override
             public void onAudioDeviceChanged(
-                RTCAudioManager.AudioDevice audioDevice, Set<RTCAudioManager.AudioDevice> availableAudioDevices) {
+                    RTCAudioManager.AudioDevice audioDevice, Set<RTCAudioManager.AudioDevice> availableAudioDevices) {
                 onAudioManagerDevicesChanged(audioDevice, availableAudioDevices);
             }
-        });
+        });*/
+
+        if (!audioManagerStarted) {
+            Log.d(TAG, "Starting the audio manager...");
+            Intent serviceIntent = new Intent(registrar.context(), RTCAudioBackgroundService.class);
+            serviceIntent.setAction(RTCAudioBackgroundService.START_ACTION);
+            //todo: this should be parametrized
+            serviceIntent.putExtra(RTCAudioBackgroundService.NOTIFICATION_TITLE, "SportDev");
+            serviceIntent.putExtra(RTCAudioBackgroundService.NOTIFICATION_CONTENT, "You are in a call");
+            ContextCompat.startForegroundService(registrar.context(), serviceIntent);
+            audioManagerStarted = true;
+        }
     }
 
     private void stopAudioManager() {
-        if (rtcAudioManager != null) {
+    /*       if (rtcAudioManager != null) {
             Log.d(TAG, "Stoping the audio manager...");
             rtcAudioManager.stop();
             rtcAudioManager = null;
+        }*/
+        if (audioManagerStarted) {
+            Log.d(TAG, "Stoping the audio manager...");
+            Intent serviceIntent = new Intent(registrar.context(), RTCAudioBackgroundService.class);
+            serviceIntent.setAction(RTCAudioBackgroundService.STOP_ACTION);
+            registrar.context().stopService(serviceIntent);
+            audioManagerStarted = false;
         }
     }
 
     // This method is called when the audio manager reports audio device change,
     // e.g. from wired headset to speakerphone.
     private void onAudioManagerDevicesChanged(
-        final RTCAudioManager.AudioDevice device, final Set<RTCAudioManager.AudioDevice> availableDevices) {
+            final RTCAudioManager.AudioDevice device, final Set<RTCAudioManager.AudioDevice> availableDevices) {
         Log.d(TAG, "onAudioManagerDevicesChanged: " + availableDevices + ", "
                 + "selected: " + device);
         // TODO(henrika): add callback handler.
@@ -199,9 +224,9 @@ public class FlutterWebRTCPlugin implements MethodCallHandler {
             Map<String, Object> constraints = call.argument("constraints");
             ConstraintsMap constraintsMap = new ConstraintsMap(constraints);
             getUserMedia(constraintsMap, result);
-        }else if (call.method.equals("getSources")) {
+        } else if (call.method.equals("getSources")) {
             getSources(result);
-        }else if (call.method.equals("createOffer")) {
+        } else if (call.method.equals("createOffer")) {
             String peerConnectionId = call.argument("peerConnectionId");
             Map<String, Object> constraints = call.argument("constraints");
             peerConnectionCreateOffer(peerConnectionId, new ConstraintsMap(constraints), result);
@@ -211,7 +236,7 @@ public class FlutterWebRTCPlugin implements MethodCallHandler {
             peerConnectionCreateAnswer(peerConnectionId, new ConstraintsMap(constraints), result);
         } else if (call.method.equals("mediaStreamGetTracks")) {
             String streamId = call.argument("streamId");
-            MediaStream stream = getStreamForId(streamId,"");
+            MediaStream stream = getStreamForId(streamId, "");
             Map<String, Object> resultMap = new HashMap<>();
             List<Object> audioTracks = new ArrayList<>();
             List<Object> videoTracks = new ArrayList<>();
@@ -275,15 +300,15 @@ public class FlutterWebRTCPlugin implements MethodCallHandler {
             String type = call.argument("type");
             Boolean isBinary = type.equals("binary");
             ByteBuffer byteBuffer;
-            if(isBinary){
+            if (isBinary) {
                 byteBuffer = ByteBuffer.wrap(call.argument("data"));
-            }else{
+            } else {
                 try {
                     String data = call.argument("data");
                     byteBuffer = ByteBuffer.wrap(data.getBytes("UTF-8"));
                 } catch (UnsupportedEncodingException e) {
                     Log.d(TAG, "Could not encode text string as UTF-8.");
-                    result.error("dataChannelSendFailed", "Could not encode text string as UTF-8.",null);
+                    result.error("dataChannelSendFailed", "Could not encode text string as UTF-8.", null);
                     return;
                 }
             }
@@ -298,22 +323,22 @@ public class FlutterWebRTCPlugin implements MethodCallHandler {
             String streamId = call.argument("streamId");
             mediaStreamRelease(streamId);
             result.success(null);
-        }else if (call.method.equals("mediaStreamTrackSetEnable")) {
+        } else if (call.method.equals("mediaStreamTrackSetEnable")) {
             String trackId = call.argument("trackId");
             Boolean enabled = call.argument("enabled");
             MediaStreamTrack track = getTrackForId(trackId);
-            if(track != null){
+            if (track != null) {
                 track.setEnabled(enabled);
             }
             result.success(null);
-        }else if (call.method.equals("mediaStreamAddTrack")) {
+        } else if (call.method.equals("mediaStreamAddTrack")) {
             String streamId = call.argument("streamId");
             String trackId = call.argument("trackId");
             mediaStreamAddTrack(streamId, trackId, result);
-        }else if (call.method.equals("mediaStreamRemoveTrack")) {
+        } else if (call.method.equals("mediaStreamRemoveTrack")) {
             String streamId = call.argument("streamId");
             String trackId = call.argument("trackId");
-            mediaStreamRemoveTrack(streamId,trackId, result);
+            mediaStreamRemoveTrack(streamId, trackId, result);
         } else if (call.method.equals("trackDispose")) {
             String trackId = call.argument("trackId");
             localTracks.remove(trackId);
@@ -322,11 +347,11 @@ public class FlutterWebRTCPlugin implements MethodCallHandler {
             String peerConnectionId = call.argument("peerConnectionId");
             peerConnectionClose(peerConnectionId);
             result.success(null);
-        } else if(call.method.equals("peerConnectionDispose")){
+        } else if (call.method.equals("peerConnectionDispose")) {
             String peerConnectionId = call.argument("peerConnectionId");
             peerConnectionDispose(peerConnectionId);
             result.success(null);
-        }else if (call.method.equals("createVideoRenderer")) {
+        } else if (call.method.equals("createVideoRenderer")) {
             TextureRegistry.SurfaceTextureEntry entry = textures.createSurfaceTexture();
             SurfaceTexture surfaceTexture = entry.surfaceTexture();
             FlutterRTCVideoRenderer render = new FlutterRTCVideoRenderer(surfaceTexture, entry);
@@ -339,15 +364,15 @@ public class FlutterWebRTCPlugin implements MethodCallHandler {
 
             eventChannel.setStreamHandler(render);
             render.setEventChannel(eventChannel);
-            render.setId((int)entry.id());
+            render.setId((int) entry.id());
 
             ConstraintsMap params = new ConstraintsMap();
-            params.putInt("textureId", (int)entry.id());
+            params.putInt("textureId", (int) entry.id());
             result.success(params.toMap());
         } else if (call.method.equals("videoRendererDispose")) {
             int textureId = call.argument("textureId");
             FlutterRTCVideoRenderer render = renders.get(textureId);
-            if(render == null ){
+            if (render == null) {
                 result.error("FlutterRTCVideoRendererNotFound", "render [" + textureId + "] not found !", null);
                 return;
             }
@@ -385,20 +410,22 @@ public class FlutterWebRTCPlugin implements MethodCallHandler {
             result.success(null);
         } else if (call.method.equals("setMicrophoneMute")) {
             boolean mute = call.argument("mute");
-            rtcAudioManager.setMicrophoneMute(mute);
+            setMicrophoneMute(mute);
+            //rtcAudioManager.setMicrophoneMute(mute);
             result.success(null);
         } else if (call.method.equals("enableSpeakerphone")) {
             boolean enable = call.argument("enable");
-            if(rtcAudioManager == null ){
+            if (!audioManagerStarted) {
                 startAudioManager();
             }
-            rtcAudioManager.setSpeakerphoneOn(enable);
+            setSpeakerPhoneOn(enable);
+            //rtcAudioManager.setSpeakerphoneOn(enable);
             result.success(null);
-        } else if(call.method.equals("getDisplayMedia")) {
+        } else if (call.method.equals("getDisplayMedia")) {
             Map<String, Object> constraints = call.argument("constraints");
             ConstraintsMap constraintsMap = new ConstraintsMap(constraints);
             getDisplayMedia(constraintsMap, result);
-        }else if (call.method.equals("startRecordToFile")) {
+        } else if (call.method.equals("startRecordToFile")) {
             //This method can a lot of different exceptions
             //so we should notify plugin user about them
             try {
@@ -479,6 +506,18 @@ public class FlutterWebRTCPlugin implements MethodCallHandler {
         } else {
             result.notImplemented();
         }
+    }
+
+    private void setMicrophoneMute(final boolean mute) {
+        Intent serviceIntent = new Intent(registrar.context(), RTCAudioBackgroundService.class);
+        serviceIntent.putExtra(RTCAudioBackgroundService.SET_MICROPHONE_MUTE, mute);
+        ContextCompat.startForegroundService(registrar.context(), serviceIntent);
+    }
+
+    private void setSpeakerPhoneOn(final boolean enable) {
+        Intent serviceIntent = new Intent(registrar.context(), RTCAudioBackgroundService.class);
+        serviceIntent.putExtra(RTCAudioBackgroundService.SET_SPEAKERPHONE_ON, enable);
+        ContextCompat.startForegroundService(registrar.context(), serviceIntent);
     }
 
     private PeerConnection getPeerConnection(String id) {
@@ -753,7 +792,7 @@ public class FlutterWebRTCPlugin implements MethodCallHandler {
                 parseMediaConstraints(constraints),
                 observer);
         observer.setPeerConnection(peerConnection);
-        if(mPeerConnectionObservers.size() == 0) {
+        if (mPeerConnectionObservers.size() == 0) {
             startAudioManager();
         }
         mPeerConnectionObservers.put(peerConnectionId, observer);
@@ -765,7 +804,7 @@ public class FlutterWebRTCPlugin implements MethodCallHandler {
 
         do {
             uuid = UUID.randomUUID().toString();
-        } while (getStreamForId(uuid,"") != null);
+        } while (getStreamForId(uuid, "") != null);
 
         return uuid;
     }
@@ -838,7 +877,7 @@ public class FlutterWebRTCPlugin implements MethodCallHandler {
     }
 
     private String getMapStrValue(ConstraintsMap map, String key) {
-        if(!map.hasKey(key)){
+        if (!map.hasKey(key)) {
             return null;
         }
         ObjectType type = map.getType(key);
@@ -987,7 +1026,7 @@ public class FlutterWebRTCPlugin implements MethodCallHandler {
         if (track != null && track instanceof AudioTrack) {
             Log.d(TAG, "setVolume(): " + id + "," + volume);
             try {
-                ((AudioTrack)track).setVolume(volume);
+                ((AudioTrack) track).setVolume(volume);
             } catch (Exception e) {
                 Log.e(TAG, "setVolume(): error", e);
             }
@@ -1000,7 +1039,7 @@ public class FlutterWebRTCPlugin implements MethodCallHandler {
         MediaStream mediaStream = localStreams.get(streaemId);
         if (mediaStream != null) {
             MediaStreamTrack track = localTracks.get(trackId);
-            if (track != null){
+            if (track != null) {
                 if (track.kind().equals("audio")) {
                     mediaStream.addTrack((AudioTrack) track);
                 } else if (track.kind().equals("video")) {
@@ -1310,6 +1349,7 @@ public class FlutterWebRTCPlugin implements MethodCallHandler {
             pco.close();
         }
     }
+
     public void peerConnectionDispose(final String id) {
         PeerConnectionObserver pco = mPeerConnectionObservers.get(id);
         if (pco == null || pco.getPeerConnection() == null) {
@@ -1318,7 +1358,7 @@ public class FlutterWebRTCPlugin implements MethodCallHandler {
             pco.dispose();
             mPeerConnectionObservers.remove(id);
         }
-        if(mPeerConnectionObservers.size() == 0) {
+        if (mPeerConnectionObservers.size() == 0) {
             stopAudioManager();
         }
     }
