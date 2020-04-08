@@ -132,48 +132,9 @@ public class FlutterWebRTCPlugin implements MethodCallHandler {
                 .setVideoDecoderFactory(new DefaultVideoDecoderFactory(eglContext))
                 .setAudioDeviceModule(audioDeviceModule)
                 .createPeerConnectionFactory();
-
-        //startAudioManager();
-
-/*        rtcAudioManager = RTCAudioManager.create(registrar.context());
-        // Store existing audio settings and change audio mode to
-        // MODE_IN_COMMUNICATION for best possible VoIP performance.
-        Log.d(TAG, "Starting the audio manager...");
-        rtcAudioManager.start(new RTCAudioManager.AudioManagerEvents() {
-            // This method will be called each time the number of available audio
-            // devices has changed.
-            @Override
-            public void onAudioDeviceChanged(
-                    RTCAudioManager.AudioDevice audioDevice, Set<RTCAudioManager.AudioDevice> availableAudioDevices) {
-                onAudioManagerDevicesChanged(audioDevice, availableAudioDevices);
-            }
-        });*/
-        /*
-        if (audioManager != null) {
-            audioManager.stop();
-            audioManager = null;
-        }
-        */
     }
 
     private void startAudioManager() {
-   /*     if (rtcAudioManager != null)
-            return;
-
-        rtcAudioManager = RTCAudioManager.create(registrar.context());
-        // Store existing audio settings and change audio mode to
-        // MODE_IN_COMMUNICATION for best possible VoIP performance.
-        Log.d(TAG, "Starting the audio manager...");
-        rtcAudioManager.start(new RTCAudioManager.AudioManagerEvents() {
-            // This method will be called each time the number of available audio
-            // devices has changed.
-            @Override
-            public void onAudioDeviceChanged(
-                    RTCAudioManager.AudioDevice audioDevice, Set<RTCAudioManager.AudioDevice> availableAudioDevices) {
-                onAudioManagerDevicesChanged(audioDevice, availableAudioDevices);
-            }
-        });*/
-
         if (!audioManagerStarted) {
             Log.d(TAG, "Starting the audio manager...");
             Intent serviceIntent = new Intent(registrar.context(), RTCAudioBackgroundService.class);
@@ -187,11 +148,6 @@ public class FlutterWebRTCPlugin implements MethodCallHandler {
     }
 
     private void stopAudioManager() {
-    /*       if (rtcAudioManager != null) {
-            Log.d(TAG, "Stoping the audio manager...");
-            rtcAudioManager.stop();
-            rtcAudioManager = null;
-        }*/
         if (audioManagerStarted) {
             Log.d(TAG, "Stoping the audio manager...");
             Intent serviceIntent = new Intent(registrar.context(), RTCAudioBackgroundService.class);
@@ -224,7 +180,6 @@ public class FlutterWebRTCPlugin implements MethodCallHandler {
             Map<String, Object> constraints = call.argument("constraints");
             ConstraintsMap constraintsMap = new ConstraintsMap(constraints);
             getUserMedia(constraintsMap, result);
-            startAudioManager(); //TODO: check if this is the correct place
         } else if (call.method.equals("getSources")) {
             getSources(result);
         } else if (call.method.equals("createOffer")) {

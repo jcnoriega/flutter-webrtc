@@ -92,16 +92,7 @@ class _MyAppState extends State<LoopBackSample> {
   _makeCall() async {
     final Map<String, dynamic> mediaConstraints = {
       "audio": true,
-      "video": {
-        "mandatory": {
-          "minWidth":
-              '1280', // Provide your own width, height and frame rate here
-          "minHeight": '720',
-          "minFrameRate": '30',
-        },
-        "facingMode": "user",
-        "optional": [],
-      }
+      "video": false
     };
 
     Map<String, dynamic> configuration = {
@@ -113,7 +104,7 @@ class _MyAppState extends State<LoopBackSample> {
     final Map<String, dynamic> offerSdpConstraints = {
       "mandatory": {
         "OfferToReceiveAudio": true,
-        "OfferToReceiveVideo": true,
+        "OfferToReceiveVideo": false,
       },
       "optional": [],
     };
@@ -165,16 +156,16 @@ class _MyAppState extends State<LoopBackSample> {
   _hangUp() async {
     try {
       await _localStream.dispose();
-      await _peerConnection.close();
+      _peerConnection.dispose();
       _peerConnection = null;
       _localRenderer.srcObject = null;
       _remoteRenderer.srcObject = null;
     } catch (e) {
       print(e.toString());
     }
-    setState(() {
+ /*   setState(() {
       _inCalling = false;
-    });
+    });*/
     _timer.cancel();
   }
 
