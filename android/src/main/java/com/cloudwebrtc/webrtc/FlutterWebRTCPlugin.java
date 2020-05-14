@@ -1303,6 +1303,10 @@ public class FlutterWebRTCPlugin implements MethodCallHandler {
             Log.d(TAG, "peerConnectionClose() peerConnection is null");
         } else {
             pco.close();
+            mPeerConnectionObservers.remove(id);
+        }
+        if (mPeerConnectionObservers.size() == 0) {
+            stopAudioManager();
         }
     }
 
