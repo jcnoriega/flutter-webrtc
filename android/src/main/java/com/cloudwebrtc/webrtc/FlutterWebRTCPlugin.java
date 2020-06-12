@@ -141,7 +141,7 @@ public class FlutterWebRTCPlugin implements MethodCallHandler {
             serviceIntent.setAction(RTCAudioBackgroundService.START_ACTION);
             //todo: this should be parametrized
             serviceIntent.putExtra(RTCAudioBackgroundService.NOTIFICATION_TITLE, "SportDev");
-            serviceIntent.putExtra(RTCAudioBackgroundService.NOTIFICATION_CONTENT, "You are in a call");
+            serviceIntent.putExtra(RTCAudioBackgroundService.NOTIFICATION_CONTENT, "You are in a game");
             ContextCompat.startForegroundService(registrar.context(), serviceIntent);
             audioManagerStarted = true;
         }
@@ -909,6 +909,7 @@ public class FlutterWebRTCPlugin implements MethodCallHandler {
         }
 
         getUserMediaImpl.getUserMedia(constraints, result, mediaStream);
+        startAudioManager();
     }
 
     public void getDisplayMedia(ConstraintsMap constraints, Result result) {
