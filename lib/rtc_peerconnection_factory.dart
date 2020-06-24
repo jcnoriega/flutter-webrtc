@@ -26,3 +26,8 @@ Future<RTCPeerConnection> createPeerConnection(
   String peerConnectionId = response['peerConnectionId'];
   return new RTCPeerConnection(peerConnectionId, configuration);
 }
+
+void stop() async {
+  MethodChannel channel = WebRTC.methodChannel();
+  await channel.invokeMethod("stop");
+}

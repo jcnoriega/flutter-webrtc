@@ -149,9 +149,8 @@ public class FlutterWebRTCPlugin implements MethodCallHandler {
 
     private void stopAudioManager() {
         if (audioManagerStarted) {
-            Log.d(TAG, "Stoping the audio manager...");
+            Log.d(TAG, "Stopping the audio manager...");
             Intent serviceIntent = new Intent(registrar.context(), RTCAudioBackgroundService.class);
-            serviceIntent.setAction(RTCAudioBackgroundService.STOP_ACTION);
             registrar.context().stopService(serviceIntent);
             audioManagerStarted = false;
         }
@@ -459,6 +458,8 @@ public class FlutterWebRTCPlugin implements MethodCallHandler {
                 Log.d(TAG, "setConfiguration() peerConnection is null");
                 result.error("setConfigurationFailed", "setConfiguration() peerConnection is null", null);
             }
+        } else if (call.method.equals("stop")) {
+            stopAudioManager();
         } else {
             result.notImplemented();
         }
@@ -909,6 +910,7 @@ public class FlutterWebRTCPlugin implements MethodCallHandler {
         }
 
         getUserMediaImpl.getUserMedia(constraints, result, mediaStream);
+        Log.e(TAG, "GET USER MEDIA");
         startAudioManager();
     }
 

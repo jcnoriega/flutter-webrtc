@@ -9,6 +9,7 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.IBinder;
+import android.util.Log;
 
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
@@ -16,9 +17,10 @@ import androidx.core.app.NotificationCompat;
 
 public class RTCAudioBackgroundService extends Service {
 
+    private static final String TAG = "AudioBackgroundService";
+
     public static final String CHANNEL_ID = "RTCAudiofForegroundService";
     public static final String START_ACTION = "com.cloudwebrtc.webrtc.utils.RTCAudioBackgroundService.START_SERVICE";
-    public static final String STOP_ACTION = "com.cloudwebrtc.webrtc.utils.RTCAudioBackgroundService.STOP_SERVICE";
 
     public static final String SET_SPEAKERPHONE_ON = "setSpeakerPhoneOn";
     public static final String SET_MICROPHONE_MUTE = "setMicrophoneMute";
@@ -37,18 +39,10 @@ public class RTCAudioBackgroundService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        if (intent.getAction() != null) {
-            switch (intent.getAction()) {
-                case START_ACTION:
-                    start(intent);
-                    break;
-                case STOP_ACTION:
-                    stop();
-                    break;
-            }
-        }
-
-        if (intent.hasExtra(SET_MICROPHONE_MUTE)) {
+        if (intent.getAction() != null && intent.getAction().equals(START_ACTION)) {
+            Log.d(TAG, "Service started... ");
+            start(intent);
+        } else if (intent.hasExtra(SET_MICROPHONE_MUTE)) {
             final boolean mute = intent.getBooleanExtra(SET_MICROPHONE_MUTE, false);
             rtcAudioManager.setMicrophoneMute(mute);
         } else if (intent.hasExtra(SET_SPEAKERPHONE_ON)) {
@@ -56,6 +50,13 @@ public class RTCAudioBackgroundService extends Service {
             rtcAudioManager.setSpeakerphoneOn(enable);
         }
         return START_STICKY;
+    }
+
+    @Override
+    public void onDestroy() {
+        Log.d(TAG, "Service destroyed...");
+        stop();
+        super.onDestroy();
     }
 
     private void start(final Intent intent) {
